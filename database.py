@@ -1,11 +1,21 @@
-import sqlite3
+import os
+
+import psycopg
+from dotenv import load_dotenv
 
 
-DB_FILE = "blackwhite.db"
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def get_connection():
-    return sqlite3.connect(DB_FILE)
+    if not DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL が .env に設定されていません。"
+        )
+
+    return psycopg.connect(DATABASE_URL)
 
 
 def init_database():
@@ -13,7 +23,7 @@ def init_database():
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS players (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             list_type TEXT NOT NULL,
             registered_name TEXT NOT NULL,
             lounge_id TEXT NOT NULL,
@@ -44,7 +54,7 @@ def add_player(
             reason,
             registered_date
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (
         list_type,
         registered_name,
@@ -68,8 +78,8 @@ def get_players(list_type):
             reason,
             registered_date
         FROM players
-        WHERE list_type = ?
-        ORDER BY registered_name COLLATE NOCASE
+        WHERE list_type = %s
+        ORDER BY registered_name
     """, (list_type,)).fetchall()
 
     conn.close()
@@ -82,7 +92,7 @@ def delete_player(player_id):
 
     conn.execute("""
         DELETE FROM players
-        WHERE id = ?
+        WHERE id = %s
     """, (player_id,))
 
     conn.commit()
@@ -100,10 +110,10 @@ def update_player(
     conn.execute("""
         UPDATE players
         SET
-            registered_name = ?,
-            lounge_id = ?,
-            reason = ?
-        WHERE id = ?
+            registered_name = %s,
+            lounge_id = %s,
+            reason = %s
+        WHERE id = %s
     """, (
         registered_name,
         lounge_id,
