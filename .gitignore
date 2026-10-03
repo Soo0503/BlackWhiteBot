@@ -1,0 +1,6 @@
+.env
+venv/
+blackwhite.db
+__pycache__/
+*.pyc
+★バックアップ/
